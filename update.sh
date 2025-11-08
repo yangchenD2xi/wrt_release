@@ -457,21 +457,6 @@ sed -ri \'/check_signature/s@^[^#]@#&@\' /etc/opkg.conf\n" $emortal_def_dir/file
     fi
 }
 
-set_build_signature() {
-    local file="./openwrt/feeds/luci/modules/luci-mod-status/htdocs/luci-static/resources/view/status/include/10_system.js"
-    echo ">>> [Debug] 当前工作目录：$(pwd)"
-    if [ -f "$file" ]; then
-        local build_time
-        build_time=$(date +"%Y.%m.%d %H:%M")
-        echo "正在修改固件版本标识..."
-        sed -i "s#ImmortalWRT SNAPSHOT.*#ImmortalWRT 24.10.4 / Build：YangChen / Time：${build_time}#g" "$file"
-        grep "ImmortalWRT" "$file"
-    else
-        echo "未找到目标文件：$file"
-        ls -l ./openwrt/feeds/luci/modules/luci-mod-status/htdocs/luci-static/resources/view/status/include/
-    fi
-}
-
 update_menu_location() {
     local samba4_path="$BUILD_DIR/feeds/luci/applications/luci-app-samba4/root/usr/share/luci/menu.d/luci-app-samba4.json"
     if [ -d "$(dirname "$samba4_path")" ] && [ -f "$samba4_path" ]; then
@@ -666,6 +651,7 @@ add_gecoosac() {
     fi
 }
 
+
 update_adguardhome() {
     local adguardhome_dir="$BUILD_DIR/package/feeds/small8/luci-app-adguardhome"
     local repo_url="https://github.com/ZqinKing/luci-app-adguardhome.git"
@@ -704,6 +690,21 @@ update_geoip() {
                 fi
             fi
         fi
+    fi
+}
+
+set_build_signature() {
+    local file="./openwrt/feeds/luci/modules/luci-mod-status/htdocs/luci-static/resources/view/status/include/10_system.js"
+    echo ">>> [Debug] 当前工作目录：$(pwd)"
+    if [ -f "$file" ]; then
+        local build_time
+        build_time=$(date +"%Y.%m.%d %H:%M")
+        echo "正在修改固件版本标识..."
+        sed -i "s#ImmortalWRT SNAPSHOT.*#ImmortalWRT 24.10.4 / Build：YangChen / Time：${build_time}#g" "$file"
+        grep "ImmortalWRT" "$file"
+    else
+        echo "未找到目标文件：$file"
+        ls -l ./openwrt/feeds/luci/modules/luci-mod-status/htdocs/luci-static/resources/view/status/include/
     fi
 }
 
