@@ -895,7 +895,7 @@ remove_tweaked_packages() {
 }
 
 update_aurora() {
-    local repo_url="https://github.com/eamonnxg/luci-theme-aurora.git"
+    local repo_url="https://github.com/eamonxg/luci-theme-aurora.git"
     local dst_theme_path="$BUILD_DIR/feeds/luci/themes/luci-theme-aurora"
     local tmp_dir
     tmp_dir=$(mktemp -d)
