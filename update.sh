@@ -457,18 +457,18 @@ sed -ri \'/check_signature/s@^[^#]@#&@\' /etc/opkg.conf\n" $emortal_def_dir/file
     fi
 }
 
-
 set_build_signature() {
-    # 直接用绝对路径定位，不依赖 BUILD_DIR
-    local file="./feeds/luci/modules/luci-mod-status/htdocs/luci-static/resources/view/status/include/10_system.js"
+    local file="./openwrt/feeds/luci/modules/luci-mod-status/htdocs/luci-static/resources/view/status/include/10_system.js"
+    echo ">>> [Debug] 当前工作目录：$(pwd)"
     if [ -f "$file" ]; then
         local build_time
         build_time=$(date +"%Y.%m.%d %H:%M")
         echo "正在修改固件版本标识..."
-        sed -i "s/ImmortalWRT SNAPSHOT.*/ImmortalWRT 24.10.4 \/ Build：YangChen \/ Time：${build_time}/g" "$file"
+        sed -i "s#ImmortalWRT SNAPSHOT.*#ImmortalWRT 24.10.4 / Build：YangChen / Time：${build_time}#g" "$file"
+        grep "ImmortalWRT" "$file"
     else
-        echo "未找到 $file，跳过固件版本信息修改。"
-        ls -l ./feeds/luci/modules/luci-mod-status/htdocs/luci-static/resources/view/status/include/
+        echo "未找到目标文件：$file"
+        ls -l ./openwrt/feeds/luci/modules/luci-mod-status/htdocs/luci-static/resources/view/status/include/
     fi
 }
 
