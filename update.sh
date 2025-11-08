@@ -991,8 +991,8 @@ main() {
     update_adguardhome
     update_script_priority
     update_geoip
-    set_build_signature
     # apply_hash_fixes # 调用哈希修正函数
 }
 
 main "$@"
+    set_build_signature
