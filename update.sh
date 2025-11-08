@@ -966,7 +966,6 @@ main() {
     update_tcping
     set_custom_task
     apply_passwall_tweaks
-    set_build_signature
     update_menu_location
     fix_compile_coremark
     update_dnsmasq_conf
