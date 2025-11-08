@@ -38,7 +38,7 @@ FEEDS_CONF="feeds.conf.default"
 GOLANG_REPO="https://github.com/sbwml/packages_lang_golang"
 GOLANG_BRANCH="25.x"
 THEME_SET="argon"
-LAN_ADDR="192.168.1.1"
+LAN_ADDR="192.168.31.1"
 
 clone_repo() {
     if [[ ! -d $BUILD_DIR ]]; then
@@ -76,31 +76,25 @@ reset_feeds_conf() {
 
 update_feeds() {
     # 删除注释行
-    local FEEDS_PATH="$BUILD_DIR/$FEEDS_CONF"
-    if [[ -f "$BUILD_DIR/feeds.conf" ]]; then
-        FEEDS_PATH="$BUILD_DIR/feeds.conf"
-    fi
-    sed -i '/^#/d' "$FEEDS_PATH"
-    sed -i '/packages_ext/d' "$FEEDS_PATH"
+    sed -i '/^#/d' "$BUILD_DIR/$FEEDS_CONF"
 
     # 检查并添加 small-package 源
-    if ! grep -q "small-package" "$FEEDS_PATH"; then
+    if ! grep -q "small-package" "$BUILD_DIR/$FEEDS_CONF"; then
         # 确保文件以换行符结尾
-        [ -z "$(tail -c 1 "$FEEDS_PATH")" ] || echo "" >>"$FEEDS_PATH"
-        echo "src-git small8 https://github.com/kenzok8/small-package" >>"$FEEDS_PATH"
+        [ -z "$(tail -c 1 "$BUILD_DIR/$FEEDS_CONF")" ] || echo "" >>"$BUILD_DIR/$FEEDS_CONF"
+        echo "src-git small8 https://github.com/kenzok8/small-package" >>"$BUILD_DIR/$FEEDS_CONF"
+    fi
+    if ! grep -q "turboacc" "$BUILD_DIR/$FEEDS_CONF"; then
+        echo "src-git turboacc https://github.com/chenmozhijin/turboacc" >>"$BUILD_DIR/$FEEDS_CONF"
+    fi
+	if ! grep -q "Aurora" "$BUILD_DIR/$FEEDS_CONF"; then
+        echo "src-git Aurora https://github.com/eamonxg/luci-theme-aurora" >>"$BUILD_DIR/$FEEDS_CONF"
     fi
 
     # 添加bpf.mk解决更新报错
     if [ ! -f "$BUILD_DIR/include/bpf.mk" ]; then
         touch "$BUILD_DIR/include/bpf.mk"
     fi
-
-    # 切换nss-packages源
-    # if grep -q "nss_packages" "$BUILD_DIR/$FEEDS_CONF"; then
-    #     sed -i '/nss_packages/d' "$BUILD_DIR/$FEEDS_CONF"
-    #     [ -z "$(tail -c 1 "$BUILD_DIR/$FEEDS_CONF")" ] || echo "" >>"$BUILD_DIR/$FEEDS_CONF"
-    #     echo "src-git nss_packages https://github.com/LiBwrt/nss-packages.git" >>"$BUILD_DIR/$FEEDS_CONF"
-    # fi
 
     # 更新 feeds
     ./scripts/feeds clean
@@ -126,7 +120,7 @@ remove_unwanted_packages() {
     )
     local small8_packages=(
         "ppp" "firewall" "dae" "daed" "daed-next" "libnftnl" "nftables" "dnsmasq" "luci-app-alist"
-        "alist" "opkg" "smartdns" "luci-app-smartdns" "easytier"
+        "alist" "opkg" "smartdns" "luci-app-smartdns"
     )
 
     for pkg in "${luci_packages[@]}"; do
@@ -159,11 +153,6 @@ remove_unwanted_packages() {
     if [[ -d ./package/istore ]]; then
         \rm -rf ./package/istore
     fi
-
-    # ipq60xx不支持NSS offload mnet_rx
-    # if grep -q "nss_packages" "$BUILD_DIR/$FEEDS_CONF"; then
-    #     rm -rf "$BUILD_DIR/feeds/nss_packages/wwan"
-    # fi
 
     # 临时放一下，清理脚本
     if [ -d "$BUILD_DIR/target/linux/qualcommax/base-files/etc/uci-defaults" ]; then
@@ -288,32 +277,6 @@ update_default_lan_addr() {
     fi
 }
 
-remove_something_nss_kmod() {
-    local ipq_mk_path="$BUILD_DIR/target/linux/qualcommax/Makefile"
-    local target_mks=("$BUILD_DIR/target/linux/qualcommax/ipq60xx/target.mk" "$BUILD_DIR/target/linux/qualcommax/ipq807x/target.mk")
-
-    for target_mk in "${target_mks[@]}"; do
-        if [ -f "$target_mk" ]; then
-            sed -i 's/kmod-qca-nss-crypto//g' "$target_mk"
-        fi
-    done
-
-    if [ -f "$ipq_mk_path" ]; then
-        sed -i '/kmod-qca-nss-drv-eogremgr/d' "$ipq_mk_path"
-        sed -i '/kmod-qca-nss-drv-gre/d' "$ipq_mk_path"
-        sed -i '/kmod-qca-nss-drv-map-t/d' "$ipq_mk_path"
-        sed -i '/kmod-qca-nss-drv-match/d' "$ipq_mk_path"
-        sed -i '/kmod-qca-nss-drv-mirror/d' "$ipq_mk_path"
-        sed -i '/kmod-qca-nss-drv-tun6rd/d' "$ipq_mk_path"
-        sed -i '/kmod-qca-nss-drv-tunipip6/d' "$ipq_mk_path"
-        sed -i '/kmod-qca-nss-drv-vxlanmgr/d' "$ipq_mk_path"
-        sed -i '/kmod-qca-nss-drv-wifi-meshmgr/d' "$ipq_mk_path"
-        sed -i '/kmod-qca-nss-macsec/d' "$ipq_mk_path"
-
-        sed -i 's/automount //g' "$ipq_mk_path"
-        sed -i 's/cpufreq //g' "$ipq_mk_path"
-    fi
-}
 
 update_affinity_script() {
     local affinity_script_dir="$BUILD_DIR/target/linux/qualcommax"
@@ -391,27 +354,6 @@ fix_mkpkg_format_invalid() {
             sed -i 's/PKG_VERSION:=0\.1\.27-1/PKG_VERSION:=0\.1\.27/g' $BUILD_DIR/feeds/small8/luci-app-store/Makefile
             sed -i 's/PKG_RELEASE:=$/PKG_RELEASE:=1/g' $BUILD_DIR/feeds/small8/luci-app-store/Makefile
         fi
-    fi
-}
-
-add_ax6600_led() {
-    local athena_led_dir="$BUILD_DIR/package/emortal/luci-app-athena-led"
-    local repo_url="https://github.com/NONGFAH/luci-app-athena-led.git"
-
-    echo "正在添加 luci-app-athena-led..."
-    rm -rf "$athena_led_dir" 2>/dev/null
-
-    if ! git clone --depth=1 "$repo_url" "$athena_led_dir"; then
-        echo "错误：从 $repo_url 克隆 luci-app-athena-led 仓库失败" >&2
-        exit 1
-    fi
-
-    if [ -d "$athena_led_dir" ]; then
-        chmod +x "$athena_led_dir/root/usr/sbin/athena-led"
-        chmod +x "$athena_led_dir/root/etc/init.d/athena_led"
-    else
-        echo "错误：克隆操作后未找到目录 $athena_led_dir" >&2
-        exit 1
     fi
 }
 
@@ -522,28 +464,14 @@ sed -ri \'/check_signature/s@^[^#]@#&@\' /etc/opkg.conf\n" $emortal_def_dir/file
     fi
 }
 
-update_nss_pbuf_performance() {
-    local pbuf_path="$BUILD_DIR/package/kernel/mac80211/files/pbuf.uci"
-    if [ -d "$(dirname "$pbuf_path")" ] && [ -f $pbuf_path ]; then
-        sed -i "s/auto_scale '1'/auto_scale 'off'/g" $pbuf_path
-        sed -i "s/scaling_governor 'performance'/scaling_governor 'schedutil'/g" $pbuf_path
-    fi
-}
 
 set_build_signature() {
     local file="$BUILD_DIR/feeds/luci/modules/luci-mod-status/htdocs/luci-static/resources/view/status/include/10_system.js"
     if [ -d "$(dirname "$file")" ] && [ -f $file ]; then
-        sed -i "s/(\(luciversion || ''\))/(\1) + (' \/ build by ZqinKing')/g" "$file"
+        sed -i "s/(\(luciversion || ''\))/(\1) + (' \/ build by YangChen')/g" "$file"
     fi
 }
 
-update_nss_diag() {
-    local file="$BUILD_DIR/package/kernel/mac80211/files/nss_diag.sh"
-    if [ -d "$(dirname "$file")" ] && [ -f "$file" ]; then
-        \rm -f "$file"
-        install -Dm755 "$BASE_PATH/patches/nss_diag.sh" "$file"
-    fi
-}
 
 update_menu_location() {
     local samba4_path="$BUILD_DIR/feeds/luci/applications/luci-app-samba4/root/usr/share/luci/menu.d/luci-app-samba4.json"
@@ -665,12 +593,6 @@ EOF
 
 # 更新启动顺序
 function update_script_priority() {
-    # 更新qca-nss驱动的启动顺序
-    local qca_drv_path="$BUILD_DIR/package/feeds/nss_packages/qca-nss-drv/files/qca-nss-drv.init"
-    if [ -d "${qca_drv_path%/*}" ] && [ -f "$qca_drv_path" ]; then
-        sed -i 's/START=.*/START=88/g' "$qca_drv_path"
-    fi
-
     # 更新pbuf服务的启动顺序
     local pbuf_path="$BUILD_DIR/package/kernel/mac80211/files/qca-nss-pbuf.init"
     if [ -d "${pbuf_path%/*}" ] && [ -f "$pbuf_path" ]; then
@@ -804,13 +726,13 @@ update_lucky() {
     version=$(find "$BASE_PATH/patches" -name "lucky_*.tar.gz" -printf "%f\n" | head -n 1 | sed -n 's/^lucky_\(.*\)_Linux.*$/\1/p')
     if [ -z "$version" ]; then
         echo "Warning: 未找到 lucky 补丁文件，跳过更新。" >&2
-        return 0
+        return 1
     fi
 
     local makefile_path="$BUILD_DIR/feeds/small8/lucky/Makefile"
     if [ ! -f "$makefile_path" ]; then
         echo "Warning: lucky Makefile not found. Skipping." >&2
-        return 0
+        return 1
     fi
 
     echo "正在更新 lucky Makefile..."
@@ -1019,13 +941,6 @@ fix_easytier_lua() {
     fi
 }
 
-fix_easytier_mk() {
-	local mk_path="$BUILD_DIR/feeds/small8/luci-app-easytier/easytier/Makefile"
-    if [ -f "$mk_path" ]; then
-        sed -i 's/!@(mips||mipsel)/!TARGET_mips \&\& !TARGET_mipsel/g' "$mk_path"
-    fi
-}
-
 # 更新 nginx-mod-ubus 模块
 update_nginx_ubus_module() {
     local makefile_path="$BUILD_DIR/feeds/packages/net/nginx/Makefile"
@@ -1057,18 +972,14 @@ main() {
     change_dnsmasq2full
     fix_mk_def_depends
     update_default_lan_addr
-    remove_something_nss_kmod
     update_affinity_script
     update_ath11k_fw
     # fix_mkpkg_format_invalid
     change_cpuusage
     update_tcping
-    add_ax6600_led
     set_custom_task
     apply_passwall_tweaks
-    update_nss_pbuf_performance
     set_build_signature
-    update_nss_diag
     update_menu_location
     fix_compile_coremark
     update_dnsmasq_conf
@@ -1089,16 +1000,11 @@ main() {
     update_nginx_ubus_module # 更新 nginx-mod-ubus 模块
     check_default_settings
     install_opkg_distfeeds
-    fix_easytier_mk
     install_feeds
     fix_easytier_lua
     update_adguardhome
     update_script_priority
     update_geoip
-    update_package "runc" "releases" "v1.2.6"
-    update_package "containerd" "releases" "v1.7.27"
-    update_package "docker" "tags" "v28.2.2"
-    update_package "dockerd" "releases" "v28.2.2"
     # apply_hash_fixes # 调用哈希修正函数
 }
 
