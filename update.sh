@@ -459,16 +459,16 @@ sed -ri \'/check_signature/s@^[^#]@#&@\' /etc/opkg.conf\n" $emortal_def_dir/file
 
 
 set_build_signature() {
-    local file="$BUILD_DIR/feeds/luci/modules/luci-mod-status/htdocs/luci-static/resources/view/status/include/10_system.js"
+    # 直接用绝对路径定位，不依赖 BUILD_DIR
+    local file="./feeds/luci/modules/luci-mod-status/htdocs/luci-static/resources/view/status/include/10_system.js"
     if [ -f "$file" ]; then
-        # 生成真实构建时间
         local build_time
         build_time=$(date +"%Y.%m.%d %H:%M")
-
         echo "正在修改固件版本标识..."
-        sed -i "s#ImmortalWRT.*#ImmortalWRT 24.10.4 / Build：YangChen / Time：${build_time}#g" "$file"
+        sed -i "s/ImmortalWRT SNAPSHOT.*/ImmortalWRT 24.10.4 \/ Build：YangChen \/ Time：${build_time}/g" "$file"
     else
         echo "未找到 $file，跳过固件版本信息修改。"
+        ls -l ./feeds/luci/modules/luci-mod-status/htdocs/luci-static/resources/view/status/include/
     fi
 }
 
